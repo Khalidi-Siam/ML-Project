@@ -1,20 +1,37 @@
 import sys
+import os
 import pandas as pd
 from src.exception import CustomException
-from src.utils import load_object
-import os
+from src.utils import load_object, load_object_from_cloudinary
 
+# Local artifacts root (used when USE_CLOUDINARY is False)
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Cloudinary defaults. These can be overridden with environment variables:
+# CLOUDINARY_MODEL_ASSET and CLOUDINARY_PREPROCESSOR_ASSET.
+DEFAULT_CLOUDINARY_MODEL_ASSET = "model_tu4c9k.pkl"
+DEFAULT_CLOUDINARY_PREPROCESSOR_ASSET = "preprocessor_j3sriu.pkl"
+
+
 class PredictPipeline:
     def __init__(self):
         pass
 
     def predict(self, features):
         try:
-            model_path=os.path.join(PROJECT_ROOT, 'artifacts', 'model.pkl')
-            preprocessor_path=os.path.join(PROJECT_ROOT, 'artifacts', 'preprocessor.pkl')
-            model = load_object(file_path=model_path)
-            preprocessor = load_object(file_path=preprocessor_path)
+            use_cloudinary = os.environ.get("USE_CLOUDINARY", "False").lower() == "true"
+
+            if use_cloudinary:
+                model_asset = os.environ.get("CLOUDINARY_MODEL_ASSET", DEFAULT_CLOUDINARY_MODEL_ASSET)
+                preprocessor_asset = os.environ.get("CLOUDINARY_PREPROCESSOR_ASSET", DEFAULT_CLOUDINARY_PREPROCESSOR_ASSET)
+                model = load_object_from_cloudinary(model_asset)
+                preprocessor = load_object_from_cloudinary(preprocessor_asset)
+            else:
+                model_path = os.path.join(PROJECT_ROOT, 'artifacts', 'model.pkl')
+                preprocessor_path = os.path.join(PROJECT_ROOT, 'artifacts', 'preprocessor.pkl')
+                model = load_object(file_path=model_path)
+                preprocessor = load_object(file_path=preprocessor_path)
+
             data_scaled = preprocessor.transform(features)
             pred = model.predict(data_scaled)
             return pred

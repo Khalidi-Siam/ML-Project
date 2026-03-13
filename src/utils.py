@@ -49,3 +49,29 @@ def load_object(file_path):
             return dill.load(file_obj)
     except Exception as e:
         raise CustomException(e, sys)
+
+def load_object_from_cloudinary(public_id):
+    """Download a serialized dill object from Cloudinary.
+
+    Args:
+        public_id: Either a full Cloudinary URL or a raw public_id path.
+    """
+    try:
+        import requests
+        public_id = str(public_id).strip()
+        if not public_id:
+            raise ValueError("Cloudinary asset reference is empty")
+
+        if public_id.startswith(("http://", "https://")):
+            url = public_id
+        else:
+            cloud_name = os.environ.get("CLOUDINARY_CLOUD_NAME")
+            if not cloud_name:
+                raise ValueError("CLOUDINARY_CLOUD_NAME is required when using Cloudinary public_id")
+            url = f"https://res.cloudinary.com/{cloud_name}/raw/upload/{public_id.lstrip('/')}"
+
+        response = requests.get(url, timeout=30)
+        response.raise_for_status()
+        return dill.loads(response.content)
+    except Exception as e:
+        raise CustomException(e, sys)
