@@ -10,4 +10,5 @@ django
 cloudinary
 requests
 python-dotenv
+gunicorn
 # -e .
